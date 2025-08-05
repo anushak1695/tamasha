@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import '../../domain/usecases/get_countries_usecase.dart';
 import '../../domain/entities/country_entity.dart';
 
@@ -14,6 +15,7 @@ class CountriesProvider with ChangeNotifier {
   List<CountryEntity> _filteredCountries = [];
   String _errorMessage = '';
   String _searchQuery = '';
+  Timer? _debounceTimer;
 
   CountriesState get state => _state;
   List<CountryEntity> get countries => _filteredCountries;
@@ -35,8 +37,15 @@ class CountriesProvider with ChangeNotifier {
 
   void setSearchQuery(String query) {
     _searchQuery = query;
-    _filterCountries();
-    notifyListeners();
+
+    // Cancel the previous timer if it exists
+    _debounceTimer?.cancel();
+
+    // Start a new timer for 300 milliseconds
+    _debounceTimer = Timer(const Duration(milliseconds: 300), () {
+      _filterCountries();
+      notifyListeners();
+    });
   }
 
   void _filterCountries() {
@@ -66,7 +75,14 @@ class CountriesProvider with ChangeNotifier {
 
   void clearSearch() {
     _searchQuery = '';
+    _debounceTimer?.cancel();
     _filterCountries();
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    super.dispose();
   }
 }
